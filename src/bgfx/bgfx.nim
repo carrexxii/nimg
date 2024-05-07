@@ -1,18 +1,33 @@
 import std/sugar
+import std/strutils
 import ../sdl/sdl
 import ../debug
+import flags
 
 const LibPath = "lib/libbgfx.so"
 
-type
-    ResetFlag* {.size: sizeof(uint32).} = enum
-        None             = 0x0000_0000
-        Fullscreen       = 0x0000_0001
-        VSync            = 0x0000_0080
-        MaxAnisotropy    = 0x0000_0100
-        Capture          = 0x0000_0200
-        FlushAfterRender = 0x0000_2000
-    ResetFlags* = set[ResetFlag]
+type ResetFlag* = distinct uint32
+const
+    ResetNone*                  = ResetFlag 0x0000_0000
+    ResetFullscreen*            = ResetFlag 0x0000_0001
+    ResetMSAAShift*             = ResetFlag 0x0000_0004
+    ResetMSAAX2*                = ResetFlag 0x0000_0010
+    ResetMSAAX4*                = ResetFlag 0x0000_0020
+    ResetMSAAX8*                = ResetFlag 0x0000_0030
+    ResetMSAAX16*               = ResetFlag 0x0000_0040
+    ResetMSAAMask*              = ResetFlag 0x0000_0070
+    ResetVSync*                 = ResetFlag 0x0000_0080
+    ResetMaxAnisotropy*         = ResetFlag 0x0000_0100
+    ResetCapture*               = ResetFlag 0x0000_0200
+    ResetFlushAfterRender*      = ResetFlag 0x0000_2000
+    ResetFlipAfterRender*       = ResetFlag 0x0000_4000
+    ResetSRGBBackbuffer*        = ResetFlag 0x0000_8000
+    ResetHDR10*                 = ResetFlag 0x0001_0000
+    ResetHiDPI*                 = ResetFlag 0x0002_0000
+    ResetDepthClamp*            = ResetFlag 0x0004_0000
+    ResetSuspend*               = ResetFlag 0x0008_0000
+    ResetTransparentBackbuffer* = ResetFlag 0x0010_0000
+func `or`*(a, b: ResetFlag): ResetFlag {.borrow.}
 
 # PCI Adapters
 type VendorID {.size: sizeof(uint16).} = enum
@@ -25,9 +40,8 @@ type VendorID {.size: sizeof(uint16).} = enum
     Microsoft = 0x0000_1414
     Intel     = 0x0000_8086
 
-
-
 type Handle* = distinct uint16
+type ViewID* = distinct uint16
 func is_valid*(handle: Handle): bool =
     handle.uint != 65535
 
@@ -195,12 +209,12 @@ type Resolution* = object
     format           : TextureFormat
     width            : uint32
     height           : uint32
-    reset            : uint32
+    reset            : ResetFlag
     num_back_buffers : byte
     max_frame_latency: byte
     debug_text_scale : byte
 
-type NativeWindowHandle* = enum
+type NativeWindowHandle* {.size: sizeof(cint)} = enum
     Default
     Wayland
 
@@ -218,7 +232,7 @@ type InitLimits* = object
     transient_vb_size   : uint32
     transient_ib_size   : uint32
 
-type InitObj = object
+type InitObj {.bycopy.} = object
     kind         : RendererKind
     vendor_id    : VendorID
     device_id    : uint16
@@ -231,18 +245,55 @@ type InitObj = object
     callback     : ptr CallbackInterface
     allocator    : ptr AllocatorInterface
 
+proc get_renderer_type(): RendererKind {.importc: "bgfx_get_renderer_type", dynlib: LibPath.}
+
 proc init*(ci: ptr InitObj): bool {.importc: "bgfx_init", dynlib: LibPath.}
 proc init_ctor*(ci: ptr InitObj) {.importc: "bgfx_init_ctor", dynlib: LibPath.}
+proc reset*(w, h: uint32, flags: ResetFlag, format: TextureFormat) {.importc: "bgfx_reset", dynlib: LibPath.}
 proc init*(window: pointer, w, h: uint32,
            renderer  = RendererKind.Auto,
            vendor_id = VendorID.None,
-           reset     = {VSync}) =
+           reset     = ResetVSync) =
     var ci: InitObj
     init_ctor(addr ci)
-    ci.platform_data.nwh  = get_x11_window_number window
+    ci.platform_data.nwh  = cast[pointer](get_x11_window_number window)
     ci.platform_data.ndt  = get_x11_display_pointer window
-    ci.platform_data.kind = NativeWindowHandle.Default
+    ci.platform_data.kind = Default
     if not init(addr ci):
         echo red "Error: failed to initialize BGFX: "
 
+    reset(w, h, ResetVSync, RGBA8)
+
+    echo "Initialized BGFX ($1x$2):" % [$ci.resolution.width, $ci.resolution.height]
+    echo "\tRenderer  -> " & $get_renderer_type()
+    echo "\tVendor ID -> " & $ci.vendor_id
+    echo "\tDevice ID -> " & $ci.device_id
+
 proc shutdown*() {.importc: "bgfx_shutdown", dynlib: LibPath.}
+
+proc set_view_clear*(view_id: ViewID, flags: ClearFlag, colour: uint32, depth: float32, stencil: byte) {.importc: "bgfx_set_view_clear", dynlib: LibPath.}
+proc set_view_rect*(view_id: ViewID, x, y, w, h: uint16) {.importc: "bgfx_set_view_rect", dynlib: LibPath.}
+
+proc next_frame*(capture: bool): uint32 {.importc: "bgfx_frame", dynlib: LibPath.}
+
+type Encoder* = distinct pointer
+proc encoder_begin*(for_thread: bool): Encoder         {.importc: "bgfx_encoder_begin", dynlib: LibPath.}
+proc encoder_touch*(encoder: Encoder, view_id: ViewID) {.importc: "bgfx_encoder_touch", dynlib: LibPath.}
+proc encoder_end*(encoder: Encoder)                    {.importc: "bgfx_encoder_end"  , dynlib: LibPath.}
+
+type DebugFlag* = distinct uint32
+const
+    DebugNone*      = DebugFlag 0x0000_0000
+    DebugWireFrame* = DebugFlag 0x0000_0001
+    DebugIFH*       = DebugFlag 0x0000_0002
+    DebugStats*     = DebugFlag 0x0000_0004
+    DebugText*      = DebugFlag 0x0000_0008
+    DebugProfiler*  = DebugFlag 0x0000_0010
+proc `or`*(a, b: DebugFlag): DebugFlag {.borrow.}
+
+proc set_debug*(debug: DebugFlag)                                        {.importc: "bgfx_set_debug", dynlib: LibPath.}
+proc debug_text_clear*(attr: byte, small: bool)                          {.importc: "bgfx_dbg_text_clear" , dynlib: LibPath.}
+proc debug_text_printf*(x, y: uint16, attr: byte, fmt: cstring)          {.importc: "bgfx_dbg_text_printf", dynlib: LibPath, varargs.}
+proc debug_text_image*(x, y, w, h: uint16, data: pointer, pitch: uint16) {.importc: "bgfx_dbg_text_image" , dynlib: LibPath.}
+
+export flags

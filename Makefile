@@ -26,3 +26,6 @@ restore:
 	@make tools
 	@make lib
 
+.PHONY: cloc
+cloc:
+	@cloc --vcs=git

@@ -33,9 +33,10 @@ const
 type
     Property*   = pointer
     PropertyID* = distinct cint
-proc get_property(id: PropertyID, name: cstring, default: pointer): Property {.importc: "SDL_GetProperty", dynlib: LibPath.}
+proc get_property       (id: PropertyID, name: cstring, default: pointer): Property {.importc: "SDL_GetProperty"      , dynlib: LibPath.}
+proc get_number_property(id: PropertyID, name: cstring, default: int64  ): int64    {.importc: "SDL_GetNumberProperty", dynlib: LibPath.}
 proc get_window_property(window: Window): PropertyID {.importc: "SDL_GetWindowProperties", dynlib: LibPath.}
 
 proc get_x11_display_pointer*(window: Window): Property = get_property(get_window_property(window), PropX11DisplayPointer, nil)
-proc get_x11_screen_number*  (window: Window): Property = get_property(get_window_property(window), PropX11ScreenNumber  , nil)
-proc get_x11_window_number*  (window: Window): Property = get_property(get_window_property(window), PropX11WindowNumber  , nil)
+proc get_x11_screen_number*  (window: Window): int64    = get_number_property(get_window_property(window), PropX11ScreenNumber, 0)
+proc get_x11_window_number*  (window: Window): int64    = get_number_property(get_window_property(window), PropX11WindowNumber, 0)

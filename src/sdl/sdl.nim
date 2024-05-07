@@ -77,6 +77,7 @@ proc create_window*(title: string, w, h: int, flags: WindowFlag): Window =
         echo red "Error: failed to open window (SDL_CreateWindow): " & $get_error()
 
 proc close_window*(window: Window) {.importc: "SDL_DestroyWindow", dynlib: LibPath.}
+proc quit*() {.importc: "SDL_Quit", dynlib: LibPath.}
 
 #[ -------------------------------------------------------------------- ]#
 
