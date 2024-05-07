@@ -20,7 +20,7 @@ type
         kind*: EventKind
         time*: uint32
 
-    KeyboardEvent = object
+    KeyboardEvent* = object
         kind*     : EventKind
         reserved  : uint32
         time*     : uint64

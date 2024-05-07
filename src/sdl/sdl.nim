@@ -41,7 +41,7 @@ type DisplayID*  = distinct uint32
 type WindowID*   = distinct uint32
 type KeyboardID* = distinct uint32
 
-type Window* = ptr object
+type Window* = pointer
 type WindowFlag* = distinct uint32
 const
     WindowFullscreen*       = WindowFlag 0x0000_0001
@@ -70,16 +70,18 @@ const
     WindowNotFocusable*     = WindowFlag 0x8000_0000
 func `or`*(a, b: WindowFlag): WindowFlag {.borrow.}
 
-proc create_window(title: cstring, w, h: cint, flags: WindowFlag): ptr Window {.importc: "SDL_CreateWindow", dynlib: LibPath.}
-proc create_window*(title: string, w, h: int, flags: WindowFlag): ptr Window =
+proc create_window(title: cstring, w, h: cint, flags: WindowFlag): Window {.importc: "SDL_CreateWindow", dynlib: LibPath.}
+proc create_window*(title: string, w, h: int, flags: WindowFlag): Window =
     result = create_window(cstring title, cint w, cint h, flags)
     if result == nil:
         echo red "Error: failed to open window (SDL_CreateWindow): " & $get_error()
 
-proc close_window*(window: ptr Window) {.importc: "SDL_DestroyWindow", dynlib: LibPath.}
+proc close_window*(window: Window) {.importc: "SDL_DestroyWindow", dynlib: LibPath.}
 
 #[ -------------------------------------------------------------------- ]#
 
 import events
+import properties
 
 export events
+export properties

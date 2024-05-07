@@ -1,12 +1,14 @@
-import std/options
 import sdl/sdl
-import bgfx
+import bgfx/bgfx
 
 echo sdl.get_version()
 sdl.init(VideoFlag, EventsFlag)
 let window = sdl.create_window("SDL + BGFX", 1280, 800, sdl.WindowVulkan or sdl.WindowResizable)
 
+bgfx.init(window, 1280, 800)
+
 proc exit() {.noreturn.} =
+    bgfx.shutdown()
     close_window window
     quit 0
 
