@@ -1,3 +1,4 @@
+import std/strformat
 import ../debug
 
 const LibPath* = "lib/libSDL3.so"
@@ -8,6 +9,8 @@ type Version* = object
     major*: byte
     minor*: byte
     patch*: byte
+func `$`*(version: Version): string =
+    fmt"{version.major}.{version.minor}.{version.patch}"
 
 type InitFlag* = distinct uint32
 const

@@ -1,10 +1,14 @@
 import std/sugar
-import std/strutils
+import std/strformat
 import ../sdl/sdl
 import ../debug
 import flags
 
-const LibPath = "lib/libbgfx.so"
+const LibPath* = "lib/libbgfx.so"
+
+type Memory* = object
+    data*: ptr byte
+    size*: uint32
 
 type ResetFlag* = distinct uint32
 const
@@ -232,7 +236,7 @@ type InitLimits* = object
     transient_vb_size   : uint32
     transient_ib_size   : uint32
 
-type InitObj {.bycopy.} = object
+type InitObj = object
     kind         : RendererKind
     vendor_id    : VendorID
     device_id    : uint16
@@ -264,7 +268,7 @@ proc init*(window: pointer, w, h: uint32,
 
     reset(w, h, ResetVSync, RGBA8)
 
-    echo "Initialized BGFX ($1x$2):" % [$ci.resolution.width, $ci.resolution.height]
+    echo fmt"Initialized BGFX ({ci.resolution.width}x{ci.resolution.height}):"
     echo "\tRenderer  -> " & $get_renderer_type()
     echo "\tVendor ID -> " & $ci.vendor_id
     echo "\tDevice ID -> " & $ci.device_id
@@ -296,4 +300,11 @@ proc debug_text_clear*(attr: byte, small: bool)                          {.impor
 proc debug_text_printf*(x, y: uint16, attr: byte, fmt: cstring)          {.importc: "bgfx_dbg_text_printf", dynlib: LibPath, varargs.}
 proc debug_text_image*(x, y, w, h: uint16, data: pointer, pitch: uint16) {.importc: "bgfx_dbg_text_image" , dynlib: LibPath.}
 
+proc alloc*(size: uint32): ptr Memory                   {.importc: "bgfx_alloc"   , dynlib: LibPath.}
+proc copy*(data: pointer, size: uint32): ptr Memory     {.importc: "bgfx_copy"    , dynlib: LibPath.}
+proc make_ref*(data: pointer, size: uint32): ptr Memory {.importc: "bgfx_make_ref", dynlib: LibPath.}
+
+import shaders
+
 export flags
+export shaders

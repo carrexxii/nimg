@@ -1,2 +1,5 @@
 lib/*.so*
+tools/*/
+shaders/bin
+shaders/bgfx_shader.sh
 game
