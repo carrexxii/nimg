@@ -17,7 +17,8 @@ SHADER_FLAGS := --platform linux --profile spirv
 all:
 	@mkdir -p $(SHADER_DIR)/bin
 	@make -j12 shaders
-	@nim compile --run --out:$(BIN) $(SRC_DIR)/main.nim
+	@-nim compile --run --out:$(BIN) $(SRC_DIR)/main.nim
+	@rm -rf ./temp
 
 .PHONY: shaders
 shaders: $(VS_BIN) $(FS_BIN)
@@ -40,7 +41,6 @@ lib:
 	@cp -r $(LIB_DIR)/bgfx/tools/bin/linux/* $(TOOL_DIR)/bgfx
 	@cp $(LIB_DIR)/bgfx/src/bgfx_shader.sh $(SHADER_DIR)/
 
-	@rm -rf ./temp
 	@echo "Finished building libraries"
 
 .PHONY: tools
