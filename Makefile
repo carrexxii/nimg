@@ -41,6 +41,8 @@ lib:
 	@cp -r $(LIB_DIR)/bgfx/tools/bin/linux/* $(TOOL_DIR)/bgfx
 	@cp $(LIB_DIR)/bgfx/src/bgfx_shader.sh $(SHADER_DIR)/
 
+	@cp -r $(LIB_DIR)/cglm/include/cglm $(LIB_DIR)/include
+
 	@echo "Finished building libraries"
 
 .PHONY: tools
@@ -56,7 +58,8 @@ restore:
 
 .PHONY: clean
 clean:
-	@echo "Cleanup complete"
+	@rm $(SHADER_DIR)/bin/*
+	@echo "Shader binaries removed"
 
 .PHONY: remove
 remove: clean

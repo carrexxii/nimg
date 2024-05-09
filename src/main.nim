@@ -1,4 +1,5 @@
 import std/strformat
+import cglm/cglm
 import sdl/sdl
 import bgfx/bgfx
 import debug
@@ -19,8 +20,6 @@ set_view_clear(ViewID 0, ClearColour or ClearDepth, 0x003535FF, 1.0, 0)
 
 type
     Colour = distinct uint32
-    Vec3 = object
-        x, y, z: float32
     Vertex = object
         pos   : Vec3
         colour: Colour
@@ -35,8 +34,6 @@ var vert_mem = copy(verts[0].addr, 3*sizeof(Vertex))
 var program = create_program "model"
 var layout = create_vbo_layout([(Position, 3, Float), (Colour0, 4, UInt8)])
 var vbo = create_vbo(vert_mem, layout.addr, BufferNone)
-
-echo fmt"{StateDefault.uint64:X}"
 
 var encoder: Encoder
 var frame_num: uint32

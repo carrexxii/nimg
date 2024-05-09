@@ -10,3 +10,6 @@
 [submodule "lib/bimg"]
 	path = lib/bimg
 	url = https://github.com/bkaradzic/bimg
+[submodule "lib/cglm"]
+	path = lib/cglm
+	url = https://github.com/recp/cglm
