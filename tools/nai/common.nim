@@ -72,3 +72,10 @@ type
         mesh_count    : uint32
         meshes        : ptr uint32
         meta_data     : MetaData
+
+proc `$`*(str: String): string =
+    if str.len == 0:
+        result = ""
+    else:
+        result = new_string str.len
+        copy_mem(result[0].addr, str.data[0].addr, str.len)

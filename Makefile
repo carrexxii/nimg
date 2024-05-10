@@ -3,16 +3,22 @@ BIN = game
 SRC_DIR    = ./src
 BUILD_DIR  = ./build
 SHADER_DIR = ./shaders
+GFX_DIR    = ./gfx
+MODEL_DIR  = $(GFX_DIR)/models
 LIB_DIR    = ./lib
 TOOL_DIR   = ./tools
 
 SHADERC = $(TOOL_DIR)/bgfx/shaderc
+MODELC  = $(TOOL_DIR)/naic
 
 VS_SRC := $(wildcard $(SHADER_DIR)/*.vs.sc)
 FS_SRC := $(wildcard $(SHADER_DIR)/*.fs.sc)
 VS_BIN := $(VS_SRC:$(SHADER_DIR)/%=$(SHADER_DIR)/bin/%)
 FS_BIN := $(FS_SRC:$(SHADER_DIR)/%=$(SHADER_DIR)/bin/%)
 SHADER_FLAGS := --platform linux --profile spirv
+
+MDL_SRC := $(wildcard $(MODEL_DIR)/*)
+MDL_BIN := $(MDL_SRC:$(MODEL_DIR)/%=$(GFX_DIR)/%)
 
 all:
 	@mkdir -p $(SHADER_DIR)/bin
@@ -23,9 +29,14 @@ all:
 .PHONY: shaders
 shaders: $(VS_BIN) $(FS_BIN)
 $(VS_BIN): $(SHADER_DIR)/bin/%: $(SHADER_DIR)/%
-	$(SHADERC) --type vertex $(SHADER_FLAGS) -f $< -o $(basename $@).bin
+	@$(SHADERC) --type vertex $(SHADER_FLAGS) -f $< -o $(basename $@).bin
 $(FS_BIN): $(SHADER_DIR)/bin/%: $(SHADER_DIR)/%
-	$(SHADERC) --type fragment $(SHADER_FLAGS) -f $< -o $(basename $@).bin
+	@$(SHADERC) --type fragment $(SHADER_FLAGS) -f $< -o $(basename $@).bin
+
+.PHONY: models
+models: $(MDL_BIN)
+$(MDL_BIN): $(MDL_SRC)
+	@$(MODELC) -i:$< -o:$(basename $@).bin
 
 .PHONY: lib
 lib:
@@ -56,7 +67,8 @@ tools:
 	@cp $(TOOL_DIR)/assimp/build/bin/*.so* $(TOOL_DIR)/
 	@cp $(TOOL_DIR)/assimp/include/assimp/*.h $(TOOL_DIR)/include/assimp/
 
-	@nim compile --run --cincludes:$(TOOL_DIR)/include --out:$(TOOL_DIR)/nai $(TOOL_DIR)/nai.nim
+	@make -C $(TOOL_DIR)/nai
+	@cp $(TOOL_DIR)/nai/naic $(TOOL_DIR)/
 
 	@echo "Finished building tools"
 

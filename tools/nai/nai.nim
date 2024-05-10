@@ -1,5 +1,6 @@
 from std/strformat import fmt
 import common, model, material, animation, texture
+export common, model, material, animation, texture
 
 type ProcessFlag* = distinct uint32
 func `or`*(a, b: ProcessFlag): ProcessFlag {.borrow.}
@@ -48,15 +49,15 @@ const
     SceneAllowShared*       = 0x20
 
 type Camera* = object
-    name           : String
-    position       : Vec3
-    up             : Vec3
-    look_at        : Vec3
-    horizontal_fov : float32
-    clip_plane_near: float32
-    clip_plane_far : float32
-    aspect         : float32
-    ortho_width    : float32
+    name*           : String
+    position*       : Vec3
+    up*             : Vec3
+    look_at*        : Vec3
+    horizontal_fov* : float32
+    clip_plane_near*: float32
+    clip_plane_far* : float32
+    aspect*         : float32
+    ortho_width*    : float32
 
 type
     LightSourceKind* = enum
@@ -67,41 +68,41 @@ type
         Ambient
         Area
     Light* = object
-        name                 : String
-        kind                 : LightSourceKind
-        position             : Vec3
-        direction            : Vec3
-        up                   : Vec3
-        attenuation_constant : float32
-        attenuation_linea    : float32
-        attenuation_quadratic: float32
-        colour_diffuse       : Colour3
-        colour_specular      : Colour3
-        colour_ambient       : Colour3
-        angle_inner_cone     : float32
-        angle_outer_cone     : float32
-        size                 : Vec2
+        name*                 : String
+        kind*                 : LightSourceKind
+        position*             : Vec3
+        direction*            : Vec3
+        up*                   : Vec3
+        attenuation_constant* : float32
+        attenuation_linea*    : float32
+        attenuation_quadratic*: float32
+        colour_diffuse*       : Colour3
+        colour_specular*      : Colour3
+        colour_ambient*       : Colour3
+        angle_inner_cone*     : float32
+        angle_outer_cone*     : float32
+        size*                 : Vec2
 
 type Scene* = object
-    flags*         : SceneFlag
-    root_node      : ptr Node
-    mesh_count     : uint32
-    meshes         : ptr UncheckedArray[ptr Mesh]
-    material_count : uint32
-    materials      : ptr UncheckedArray[ptr Material]
-    animation_count: uint32
-    animations     : ptr UncheckedArray[ptr Animation]
-    texture_count  : uint32
-    textures       : ptr UncheckedArray[ptr Texture]
-    light_count    : uint32
-    lights         : ptr UncheckedArray[ptr Light]
-    camera_count   : uint32
-    cameras        : ptr UncheckedArray[ptr Camera]
-    meta_data      : ptr MetaData
-    name           : String
-    skeleton_count : uint32
-    skeletons      : ptr UncheckedArray[ptr Skeleton]
-    private        : pointer
+    flags*          : SceneFlag
+    root_node*      : ptr Node
+    mesh_count*     : uint32
+    meshes*         : ptr UncheckedArray[ptr Mesh]
+    material_count* : uint32
+    materials*      : ptr UncheckedArray[ptr Material]
+    animation_count*: uint32
+    animations*     : ptr UncheckedArray[ptr Animation]
+    texture_count*  : uint32
+    textures*       : ptr UncheckedArray[ptr Texture]
+    light_count*    : uint32
+    lights*         : ptr UncheckedArray[ptr Light]
+    camera_count*   : uint32
+    cameras*        : ptr UncheckedArray[ptr Camera]
+    meta_data*      : ptr MetaData
+    name*           : String
+    skeleton_count* : uint32
+    skeletons*      : ptr UncheckedArray[ptr Skeleton]
+    private         : pointer
 
 proc import_file(path: cstring; flags: uint32): ptr Scene {.importc: "aiImportFile", dynlib: AIPath.}
 proc import_file*(path: string; flags: ProcessFlag): ptr Scene =
@@ -110,9 +111,3 @@ proc import_file*(path: string; flags: ProcessFlag): ptr Scene =
         echo fmt"Error: failed to load '{path}'"
 
 proc free_scene*(scene: ptr Scene) {.importc: "aiReleaseImport", dynlib: AIPath.}
-
-when is_main_module:
-    const file = "gfx/models/fish.glb"
-    var scene = import_file(file, ProcessFlag 0)
-    echo fmt"Loaded file '{file}'"
-    free_scene scene
