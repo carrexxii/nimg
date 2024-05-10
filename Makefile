@@ -41,12 +41,23 @@ lib:
 	@cp -r $(LIB_DIR)/bgfx/tools/bin/linux/* $(TOOL_DIR)/bgfx
 	@cp $(LIB_DIR)/bgfx/src/bgfx_shader.sh $(SHADER_DIR)/
 
-	@cp -r $(LIB_DIR)/cglm/include/cglm $(LIB_DIR)/include
+	@cp -r $(LIB_DIR)/cglm/include/cglm $(LIB_DIR)/include/cglm
 
 	@echo "Finished building libraries"
 
 .PHONY: tools
 tools:
+	@mkdir -p $(TOOL_DIR)/include
+
+	@mkdir -p $(TOOL_DIR)/include/assimp
+	@cmake -S $(TOOL_DIR)/assimp -B $(TOOL_DIR)/assimp -DASSIMP_INSTALL=OFF -DASSIMP_DOUBLE_PRECISION=ON\
+	       -DASSIMP_NO_EXPORT=ON -DASSIMP_BUILD_TESTS=OFF -DASSIMP_INSTALL_PDB=OFF
+	@cmake --build $(TOOL_DIR)/assimp -j12
+	@cp $(TOOL_DIR)/assimp/build/bin/*.so* $(TOOL_DIR)/
+	@cp $(TOOL_DIR)/assimp/include/assimp/*.h $(TOOL_DIR)/include/assimp/
+
+	@nim compile --run --cincludes:$(TOOL_DIR)/include --out:$(TOOL_DIR)/nai $(TOOL_DIR)/nai.nim
+
 	@echo "Finished building tools"
 
 .PHONY: restore
@@ -58,7 +69,7 @@ restore:
 
 .PHONY: clean
 clean:
-	@rm $(SHADER_DIR)/bin/*
+	@rm -f $(SHADER_DIR)/bin/*
 	@echo "Shader binaries removed"
 
 .PHONY: remove

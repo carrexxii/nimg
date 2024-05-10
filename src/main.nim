@@ -32,7 +32,7 @@ var verts = [
 var vert_mem = copy(verts[0].addr, 3*sizeof(Vertex))
 
 var program = create_program "model"
-var layout = create_vbo_layout([(Position, 3, Float), (Colour0, 4, UInt8)])
+var layout = create_vbo_layout [(Position, 3, Float), (Colour0, 4, UInt8)]
 var vbo = create_vbo(vert_mem, layout.addr, BufferNone)
 
 var encoder: Encoder

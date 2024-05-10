@@ -1,9 +1,12 @@
-lib/*.so*
-lib/*.a
-lib/include
-tools/*/
+*
+!*.*
+!*/
+
+*.so*
+*.a
+include/
+tools/bgfx
 shaders/bin
 shaders/bgfx_shader.sh
-game
 
 gfx/

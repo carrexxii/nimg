@@ -13,3 +13,6 @@
 [submodule "lib/cglm"]
 	path = lib/cglm
 	url = https://github.com/recp/cglm
+[submodule "tools/assimp"]
+	path = tools/assimp
+	url = https://github.com/assimp/assimp

@@ -4,6 +4,8 @@ from std/strformat import fmt
 const IncludeDir = "../lib/cglm/include/cglm"
 const CGLMHeader = IncludeDir & "/vec3.h"
 
+# TODO: https://github.com/stavenko/nim-glm/blob/47d5f8681f3c462b37e37ebc5e7067fa5cba4d16/glm/vec.nim#L193
+
 type
     V2[T] = object
         x*, y*: T
