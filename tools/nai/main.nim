@@ -13,7 +13,11 @@ proc write_help() =
     echo "Options: (opt:VAL or opt=VAL)"
     echo "    -i, --input:PATH        Explicitly define an input file"
     echo "    -o, --output:PATH       Define the output path (defaults to current directory)"
+    echo "    -f, --force             Ignore warnings for unsupported components"
     echo "    -v, --verbose           Output extra information about the file being compiled"
+    echo "    -q, --quiet             Don't output warnings"
+    echo ""
+    echo "    --ignore    Alias for --force"
 
     echo "\nSupported formats:"
     echo fmt"""{foldl(get_extension_list(), a & " " & b, "    ")}"""
@@ -36,16 +40,20 @@ var
     output : string = cwd
     input  : string = ""
     verbose: bool = false
+    ignore : bool = false
+    quiet  : bool = false
 for kind, key, val in get_opt options:
     case kind
     of cmdLongOption, cmdShortOption:
         case key
         of "help"   , "h": write_help()
         of "verbose", "v": verbose = true
-        of "output" , "o": output = check_val(val, key)
+        of "quiet"  , "q": quiet   = true
+        of "output" , "o": output  = check_val(val, key)
         of "input"  , "i":
             check_duplicate(input, "input")
             input = val
+        of "force", "ignore", "f": ignore = true
         else:
             echo fmt"Unrecognized option: '{key}'"
             quit 1
@@ -73,8 +81,13 @@ if verbose:
     echo fmt"    Cameras    -> {scene.camera_count}"
     echo fmt"    Skeletons  -> {scene.skeleton_count}"
 
+if validate(scene, not quiet) != 0 and not ignore:
+    echo red fmt"Error: File '{input}' contains unsupported components (use -f/--force/--ignore to continue regardless)"
+    quit 1
+
 var file = open_file_stream("test.txt", fmWrite)
-output_meshes(scene, file)
+write_header(scene, file)
+write_meshes(scene, file)
 close file
 
 free_scene scene

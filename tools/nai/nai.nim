@@ -130,19 +130,33 @@ proc get_extension_list*(): seq[string] =
 
 #[ -------------------------------------------------------------------- ]#
 
+proc validate*(scene: ptr Scene; output_errs: bool): int =
+    proc check(val: uint; name: string): int =
+        result = if val != 0: 1 else: 0
+        if val != 0 and output_errs:
+            echo yellow fmt"Warning: scene contains {val} {name} which are not supported"
+
+    result =
+        check(scene.texture_count  , "textures")   +
+        check(scene.material_count , "materials")  +
+        check(scene.animation_count, "animations") +
+        check(scene.skeleton_count , "skeletons")  +
+        check(scene.light_count    , "lights")     +
+        check(scene.camera_count   , "cameras")
+
 type
     OutputFlag* = enum
         VerticesInterleaved
         VerticesSeparated
-    OutputMask* = set[OutputFlag]
+    OutputMask* {.size: sizeof(uint16).} = set[OutputFlag]
 
     VertexFlag* = enum
         VertexPosition
         VertexNormal
-    VertexMask* = set[VertexFlag]
+    VertexMask* {.size: sizeof(uint16).} = set[VertexFlag]
 
-const output_flags = {VerticesInterleaved}
-const vertex_flags = {VertexPosition, VertexNormal}
+const output_flags = OutputMask {VerticesInterleaved}
+const vertex_flags = VertexMask {VertexPosition, VertexNormal}
 
 macro build_vertex() =
     let pack_pragma = newNimNode(nnkPragma)
@@ -181,7 +195,30 @@ macro build_vertex() =
 
 build_vertex()
 
-proc output_meshes*(scene: ptr Scene; file: Stream) =
+type Header {.packed.} = object
+    magic          : array[4, byte]
+    output_flags   : OutputMask
+    vertex_flags   : VertexMask
+    mesh_count     : uint16
+    material_count : uint16
+    animation_count: uint16
+    texture_count  : uint16
+    skeleton_count : uint16
+
+proc write_header*(scene: ptr Scene; file: Stream) =
+    var header = Header(
+        magic          : [78, 65, 73, 126],
+        output_flags   : output_flags,
+        vertex_flags   : vertex_flags,
+        mesh_count     : uint16 scene.mesh_count,
+        material_count : uint16 scene.material_count,
+        animation_count: uint16 scene.animation_count,
+        texture_count  : uint16 scene.texture_count,
+        skeleton_count : uint16 scene.skeleton_count,
+    )
+    file.write_data(header.addr, sizeof header)
+
+proc write_meshes*(scene: ptr Scene; file: Stream) =
     if scene.mesh_count != 1:
         assert(false, "Need to implement multiple meshes")
     for mesh in to_open_array(scene.meshes, 0, scene.mesh_count.int - 1):
@@ -194,6 +231,6 @@ proc output_meshes*(scene: ptr Scene; file: Stream) =
             var vertex: Vertex
             for i, (pos, normal) in zip(to_open_array(mesh.vertices, 0, vc),
                                         to_open_array(mesh.normals , 0, vc)):
-                vertex.pos = pos
-                vertex.normal = normal
-                # file.write_data(vertex.addr, sizeof vertex)
+                when VertexPosition in vertex_flags: vertex.pos = pos
+                when VertexNormal   in vertex_flags: vertex.normal = normal
+                file.write_data(vertex.addr, sizeof vertex)
