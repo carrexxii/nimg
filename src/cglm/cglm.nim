@@ -8,7 +8,7 @@ const CGLMHeader = IncludeDir & "/vec3.h"
 
 type
     V2[T] = object
-        x*, y*: T
+        x*, y*: T = 1.0
     V3[T] = object
         x*, y*, z*: T
     V4[T] = object

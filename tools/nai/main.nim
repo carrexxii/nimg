@@ -1,5 +1,6 @@
-import std/parseopt
+import std/[parseopt, streams]
 from std/os import get_current_dir, extract_filename, `/`
+from std/sequtils import foldl
 from std/strformat import fmt
 import nai
 
@@ -8,10 +9,15 @@ let cwd = get_current_dir()
 proc write_help() =
     echo "Usage:"
     echo "    naic file [options]\n"
+
     echo "Options: (opt:VAL or opt=VAL)"
     echo "    -i, --input:PATH        Explicitly define an input file"
     echo "    -o, --output:PATH       Define the output path (defaults to current directory)"
     echo "    -v, --verbose           Output extra information about the file being compiled"
+
+    echo "\nSupported formats:"
+    echo fmt"""{foldl(get_extension_list(), a & " " & b, "    ")}"""
+
     quit 0
 
 proc check_duplicate(val, kind: string) =
@@ -34,13 +40,12 @@ for kind, key, val in get_opt options:
     case kind
     of cmdLongOption, cmdShortOption:
         case key
-        of "help", "h": write_help()
+        of "help"   , "h": write_help()
         of "verbose", "v": verbose = true
-        of "input" , "i":
+        of "output" , "o": output = check_val(val, key)
+        of "input"  , "i":
             check_duplicate(input, "input")
             input = val
-        of "output", "o":
-            output = check_val(val, key)
         else:
             echo fmt"Unrecognized option: '{key}'"
             quit 1
@@ -67,4 +72,9 @@ if verbose:
     echo fmt"    Lights     -> {scene.light_count}"
     echo fmt"    Cameras    -> {scene.camera_count}"
     echo fmt"    Skeletons  -> {scene.skeleton_count}"
+
+var file = open_file_stream("test.txt", fmWrite)
+output_meshes(scene, file)
+close file
+
 free_scene scene

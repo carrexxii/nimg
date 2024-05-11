@@ -1,6 +1,9 @@
+import std/[streams, macros]
+from std/sequtils import zip
+from std/strutils import split
 from std/strformat import fmt
-import common, model, material, animation, texture
-export common, model, material, animation, texture
+import common, mesh, material, animation, texture
+export common, mesh, material, animation, texture
 
 type ProcessFlag* = distinct uint32
 func `or`*(a, b: ProcessFlag): ProcessFlag {.borrow.}
@@ -104,10 +107,93 @@ type Scene* = object
     skeletons*      : ptr UncheckedArray[ptr Skeleton]
     private         : pointer
 
-proc import_file(path: cstring; flags: uint32): ptr Scene {.importc: "aiImportFile", dynlib: AIPath.}
+# TODO: import_file interface for memory load
+#       property imports
+# proc import_file*(buffer: ptr byte; length: uint32; flags: uint32; hint: cstring): ptr Scene {.importc: "aiImportFileFromMemory", dynlib: AIPath.}
+proc get_error*(): cstring                                     {.importc: "aiGetErrorString"      , dynlib: AIPath.}
+proc is_extension_supported*(ext: cstring): bool               {.importc: "aiIsExtensionSupported", dynlib: AIPath.}
+proc get_extension_list(lst: ptr String)                       {.importc: "aiGetExtensionList"    , dynlib: AIPath.}
+proc import_file(path: cstring; flags: uint32): ptr Scene      {.importc: "aiImportFile", dynlib: AIPath.}
+proc process*(scene: ptr Scene; flags: ProcessFlag): ptr Scene {.importc: "aiApplyPostProcessing" , dynlib: AIPath.}
+proc free_scene*(scene: ptr Scene)                             {.importc: "aiReleaseImport"       , dynlib: AIPath.}
+
 proc import_file*(path: string; flags: ProcessFlag): ptr Scene =
     result = import_file(path.cstring, flags.uint32)
     if result == nil:
         echo fmt"Error: failed to load '{path}'"
+        quit 1
 
-proc free_scene*(scene: ptr Scene) {.importc: "aiReleaseImport", dynlib: AIPath.}
+proc get_extension_list*(): seq[string] =
+    var lst: String
+    get_extension_list lst.addr
+    result = split($lst, ';')
+
+#[ -------------------------------------------------------------------- ]#
+
+type
+    OutputFlag* = enum
+        VerticesInterleaved
+        VerticesSeparated
+    OutputMask* = set[OutputFlag]
+
+    VertexFlag* = enum
+        VertexPosition
+        VertexNormal
+    VertexMask* = set[VertexFlag]
+
+const output_flags = {VerticesInterleaved}
+const vertex_flags = {VertexPosition, VertexNormal}
+
+macro build_vertex() =
+    let pack_pragma = newNimNode(nnkPragma)
+    let type_name   = newNimNode nnkPragmaExpr
+    pack_pragma.add(ident "packed")
+    type_name.add(ident "Vertex", pack_pragma)
+
+    var
+        type_sec = newNimNode nnkTypeSection
+        type_def = newNimNode nnkTypeDef
+        obj_def  = newNimNode nnkObjectTy
+        fields   = newNimNode nnkRecList
+        def : NimNode
+        name: string
+        kind: string
+    for flag in vertex_flags:
+        case flag
+        of VertexPosition:
+            name = "pos"
+            kind = "Vec3"
+        of VertexNormal:
+            name = "normal"
+            kind = "Vec3"
+
+        def = newNimNode(nnkPostFix)
+        def.add(ident "*")
+        def.add(ident name)
+        fields.add newIdentDefs(def, ident kind)
+
+    obj_def.add(newEmptyNode(), newEmptyNode(), fields)
+    type_def.add(type_name, newEmptyNode(), obj_def)
+    type_sec.add type_def
+
+    result = newNimNode nnkStmtList
+    result.add type_sec
+
+build_vertex()
+
+proc output_meshes*(scene: ptr Scene; file: Stream) =
+    if scene.mesh_count != 1:
+        assert(false, "Need to implement multiple meshes")
+    for mesh in to_open_array(scene.meshes, 0, scene.mesh_count.int - 1):
+        if mesh.primitive_kinds != PrimitiveTriangle:
+            echo "Error: mesh contains non-triangle primitives"
+            return
+
+        let vc = mesh.vertex_count.int - 1
+        when VerticesInterleaved in output_flags:
+            var vertex: Vertex
+            for i, (pos, normal) in zip(to_open_array(mesh.vertices, 0, vc),
+                                        to_open_array(mesh.normals , 0, vc)):
+                vertex.pos = pos
+                vertex.normal = normal
+                # file.write_data(vertex.addr, sizeof vertex)

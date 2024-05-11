@@ -61,7 +61,7 @@ tools:
 	@mkdir -p $(TOOL_DIR)/include
 
 	@mkdir -p $(TOOL_DIR)/include/assimp
-	@cmake -S $(TOOL_DIR)/assimp -B $(TOOL_DIR)/assimp -DASSIMP_INSTALL=OFF -DASSIMP_DOUBLE_PRECISION=ON\
+	@cmake -S $(TOOL_DIR)/assimp -B $(TOOL_DIR)/assimp -DASSIMP_INSTALL=OFF -DASSIMP_DOUBLE_PRECISION=OFF \
 	       -DASSIMP_NO_EXPORT=ON -DASSIMP_BUILD_TESTS=OFF -DASSIMP_INSTALL_PDB=OFF
 	@cmake --build $(TOOL_DIR)/assimp -j12
 	@cp $(TOOL_DIR)/assimp/build/bin/*.so* $(TOOL_DIR)/
