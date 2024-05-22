@@ -70,7 +70,7 @@ if input == "":
 if output == cwd:
     output = cwd / extract_filename input
 
-var scene = import_file(input, ProcessFlag 0)
+var scene = import_file(input, ProcessGenBoundingBoxes)
 if verbose:
     echo fmt"Scene '{scene.name}' ('{input}' -> '{output}')"
     echo fmt"    Meshes     -> {scene.mesh_count}"
@@ -85,9 +85,9 @@ if validate(scene, not quiet) != 0 and not ignore:
     echo red fmt"Error: File '{input}' contains unsupported components (use -f/--force/--ignore to continue regardless)"
     quit 1
 
-var file = open_file_stream("test.txt", fmWrite)
+var file = open_file_stream(output, fmWrite)
 write_header(scene, file)
-write_meshes(scene, file)
+write_meshes(scene, file, verbose)
 close file
 
 free_scene scene

@@ -1,3 +1,5 @@
+from std/strformat import fmt
+
 const NoArmaturePopulateProcess* = true
 
 const AIPath* = "./tools/libassimp.so"
@@ -80,6 +82,11 @@ proc `$`*(str: String): string =
     else:
         result = new_string str.len
         copy_mem(result[0].addr, str.data[0].addr, str.len)
+
+func `$`*(aabb: AABB): string =
+    let max = aabb.max
+    let min = aabb.min
+    result = fmt"[max({max.x:.2f}, {max.y:.2f}, {max.z:.2f}) -> min({min.x:.2f}, {min.y:.2f}, {min.z:.2f})]"
 
 #[ -------------------------------------------------------------------- ]#
 

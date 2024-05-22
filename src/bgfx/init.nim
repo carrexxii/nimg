@@ -2,11 +2,7 @@ from std/sugar     import `->`
 from std/strformat import fmt
 import common
 import debug
-import ../debug
-import ../sdl/sdl
-
-type
-    ViewID* = distinct uint16
+import nsdl
 
 # PCI Adapters
 type VendorID {.size: sizeof(uint16).} = enum
@@ -223,23 +219,23 @@ proc get_renderer_type*(): RendererKind {.importc: "bgfx_get_renderer_type", dyn
 proc init*(ci: ptr InitObj): bool {.importc: "bgfx_init", dynlib: BGFXPath.}
 proc init_ctor*(ci: ptr InitObj) {.importc: "bgfx_init_ctor", dynlib: BGFXPath.}
 proc reset*(w, h: uint32, flags: ResetFlag, format: TextureFormat) {.importc: "bgfx_reset", dynlib: BGFXPath.}
-proc init*(window: pointer, w, h: uint32,
+proc init*(window: Window, w, h: int,
            renderer  = RendererKind.Auto,
            vendor_id = VendorID.None,
            reset     = ResetVSync) =
     var ci: InitObj
-    init_ctor(addr ci)
+    init_ctor ci.addr
     ci.platform_data.nwh  = cast[pointer](get_x11_window_number window)
-    ci.platform_data.ndt  = get_x11_display_pointer window
+    ci.platform_data.ndt  = cast[pointer](get_x11_display_pointer window)
     ci.platform_data.kind = Default
     if not init(addr ci):
         echo red "Error: failed to initialize BGFX: "
 
-    reset(w, h, ResetVSync, RGBA8)
+    reset(uint32 w, uint32 h, ResetVSync, RGBA8)
 
     echo fmt"Initialized BGFX ({ci.resolution.width}x{ci.resolution.height}):"
-    echo "\tRenderer  -> " & $get_renderer_type()
-    echo "\tVendor ID -> " & $ci.vendor_id
-    echo "\tDevice ID -> " & $ci.device_id
+    echo fmt"\tRenderer  -> {get_renderer_type()}"
+    echo fmt"\tVendor ID -> {ci.vendor_id}"
+    echo fmt"\tDevice ID -> {ci.device_id}"
 
 proc shutdown*() {.importc: "bgfx_shutdown", dynlib: BGFXPath.}

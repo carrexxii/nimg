@@ -8,38 +8,38 @@ export common, mesh, material, animation, texture
 type ProcessFlag* = distinct uint32
 func `or`*(a, b: ProcessFlag): ProcessFlag {.borrow.}
 const
-    ProcessCalcTangentSpace*         = 0x0000_0001
-    ProcessJoinIdenticalVertices*    = 0x0000_0002
-    ProcessMakeLeftHanded*           = 0x0000_0004
-    ProcessTriangulate*              = 0x0000_0008
-    ProcessRemoveComponent*          = 0x0000_0010
-    ProcessGenNormals*               = 0x0000_0020
-    ProcessGenSmoothNormals*         = 0x0000_0040
-    ProcessSplitLargeMeshes*         = 0x0000_0080
-    ProcessPreTransformVertices*     = 0x0000_0100
-    ProcessLimitBoneWeights*         = 0x0000_0200
-    ProcessValidateDataStructure*    = 0x0000_0400
-    ProcessImproveCacheLocality*     = 0x0000_0800
-    ProcessRemoveRedundantMaterials* = 0x0000_1000
-    ProcessFixInfacingNormals*       = 0x0000_2000
-    ProcessPopulateArmatureData*     = 0x0000_4000
-    ProcessSortByPType*              = 0x0000_8000
-    ProcessFindDegenerates*          = 0x0001_0000
-    ProcessFindInvalidData*          = 0x0002_0000
-    ProcessGenUVCoords*              = 0x0004_0000
-    ProcessTransformUVCoords*        = 0x0008_0000
-    ProcessFindInstances*            = 0x0010_0000
-    ProcessOptimizeMeshes*           = 0x0020_0000
-    ProcessOptimizeGraph*            = 0x0040_0000
-    ProcessFlipUVs*                  = 0x0080_0000
-    ProcessFlipWindingOrder*         = 0x0100_0000
-    ProcessSplitByBoneCount*         = 0x0200_0000
-    ProcessDebone*                   = 0x0400_0000
-    ProcessGlobalScale*              = 0x0800_0000
-    ProcessEmbedTextures*            = 0x1000_0000
-    ProcessForceGenNormals*          = 0x2000_0000
-    ProcessDropNormals*              = 0x4000_0000
-    ProcessGenBoundingBoxes*         = 0x8000_0000
+    ProcessCalcTangentSpace*         = ProcessFlag 0x0000_0001
+    ProcessJoinIdenticalVertices*    = ProcessFlag 0x0000_0002
+    ProcessMakeLeftHanded*           = ProcessFlag 0x0000_0004
+    ProcessTriangulate*              = ProcessFlag 0x0000_0008
+    ProcessRemoveComponent*          = ProcessFlag 0x0000_0010
+    ProcessGenNormals*               = ProcessFlag 0x0000_0020
+    ProcessGenSmoothNormals*         = ProcessFlag 0x0000_0040
+    ProcessSplitLargeMeshes*         = ProcessFlag 0x0000_0080
+    ProcessPreTransformVertices*     = ProcessFlag 0x0000_0100
+    ProcessLimitBoneWeights*         = ProcessFlag 0x0000_0200
+    ProcessValidateDataStructure*    = ProcessFlag 0x0000_0400
+    ProcessImproveCacheLocality*     = ProcessFlag 0x0000_0800
+    ProcessRemoveRedundantMaterials* = ProcessFlag 0x0000_1000
+    ProcessFixInfacingNormals*       = ProcessFlag 0x0000_2000
+    ProcessPopulateArmatureData*     = ProcessFlag 0x0000_4000
+    ProcessSortByPType*              = ProcessFlag 0x0000_8000
+    ProcessFindDegenerates*          = ProcessFlag 0x0001_0000
+    ProcessFindInvalidData*          = ProcessFlag 0x0002_0000
+    ProcessGenUVCoords*              = ProcessFlag 0x0004_0000
+    ProcessTransformUVCoords*        = ProcessFlag 0x0008_0000
+    ProcessFindInstances*            = ProcessFlag 0x0010_0000
+    ProcessOptimizeMeshes*           = ProcessFlag 0x0020_0000
+    ProcessOptimizeGraph*            = ProcessFlag 0x0040_0000
+    ProcessFlipUVs*                  = ProcessFlag 0x0080_0000
+    ProcessFlipWindingOrder*         = ProcessFlag 0x0100_0000
+    ProcessSplitByBoneCount*         = ProcessFlag 0x0200_0000
+    ProcessDebone*                   = ProcessFlag 0x0400_0000
+    ProcessGlobalScale*              = ProcessFlag 0x0800_0000
+    ProcessEmbedTextures*            = ProcessFlag 0x1000_0000
+    ProcessForceGenNormals*          = ProcessFlag 0x2000_0000
+    ProcessDropNormals*              = ProcessFlag 0x4000_0000
+    ProcessGenBoundingBoxes*         = ProcessFlag 0x8000_0000
 
 type SceneFlag* = distinct uint32
 func `or`*(a, b: SceneFlag): SceneFlag {.borrow.}
@@ -153,10 +153,16 @@ type
     VertexFlag* = enum
         VertexPosition
         VertexNormal
+        VertexTangent
+        VertexBitangent
+        VertexColourRGBA
+        VertexColourRGB
+        VertexUV
+        VertexUV3
     VertexMask* {.size: sizeof(uint16).} = set[VertexFlag]
 
 const output_flags = OutputMask {VerticesInterleaved}
-const vertex_flags = VertexMask {VertexPosition, VertexNormal}
+const vertex_flags = VertexMask {VertexPosition, VertexNormal, VertexUV}
 
 macro build_vertex() =
     let pack_pragma = newNimNode(nnkPragma)
@@ -174,12 +180,14 @@ macro build_vertex() =
         kind: string
     for flag in vertex_flags:
         case flag
-        of VertexPosition:
-            name = "pos"
-            kind = "Vec3"
-        of VertexNormal:
-            name = "normal"
-            kind = "Vec3"
+        of VertexPosition  : name = "pos"      ; kind = "Vec3"
+        of VertexNormal    : name = "normal"   ; kind = "Vec3"
+        of VertexTangent   : name = "tangent"  ; kind = "Vec3"
+        of VertexBitangent : name = "bitangent"; kind = "Vec3"
+        of VertexColourRGBA: name = "colour"   ; kind = "Colour"
+        of VertexColourRGB : name = "colour"   ; kind = "Colour3"
+        of VertexUV        : name = "uv"       ; kind = "Vec2"
+        of VertexUV3       : name = "uv"       ; kind = "Vec3"
 
         def = newNimNode(nnkPostFix)
         def.add(ident "*")
@@ -205,6 +213,7 @@ type Header {.packed.} = object
     texture_count  : uint16
     skeleton_count : uint16
 
+# TODO: ensure flags don't overlap/have invalid pairs
 proc write_header*(scene: ptr Scene; file: Stream) =
     var header = Header(
         magic          : [78, 65, 73, 126],
@@ -218,10 +227,21 @@ proc write_header*(scene: ptr Scene; file: Stream) =
     )
     file.write_data(header.addr, sizeof header)
 
-proc write_meshes*(scene: ptr Scene; file: Stream) =
+proc write_meshes*(scene: ptr Scene; file: Stream; verbose: bool) =
+    template write(flags, dst, src) =
+        when flags < vertex_flags:
+            dst = src
+
     if scene.mesh_count != 1:
         assert(false, "Need to implement multiple meshes")
     for mesh in to_open_array(scene.meshes, 0, scene.mesh_count.int - 1):
+        if verbose:
+            echo fmt"Mesh '{mesh.name}' (material index: {mesh.material_index}) {vertex_flags}"
+            echo fmt"    {mesh.vertex_count} vertices ({mesh.face_count} faces)"
+            echo fmt"    {mesh.bone_count} bones"
+            echo fmt"    {mesh.anim_mesh_count} animation meshes (morphing method: {mesh.morph_method})"
+            echo fmt"    AABB: {mesh.aabb}"
+
         if mesh.primitive_kinds != PrimitiveTriangle:
             echo "Error: mesh contains non-triangle primitives"
             return
@@ -231,6 +251,12 @@ proc write_meshes*(scene: ptr Scene; file: Stream) =
             var vertex: Vertex
             for i, (pos, normal) in zip(to_open_array(mesh.vertices, 0, vc),
                                         to_open_array(mesh.normals , 0, vc)):
-                when VertexPosition in vertex_flags: vertex.pos = pos
-                when VertexNormal   in vertex_flags: vertex.normal = normal
+                write({VertexPosition}                   , vertex.pos      , pos)
+                write({VertexNormal}                     , vertex.normal   , normal)
+                write({VertexTangent}                    , vertex.tangent  , tangent)
+                write({VertexBitangent}                  , vertex.bitangent, bitangent)
+                write({VertexColourRGBA, VertexColourRGB}, vertex.colour   , colour)
+                write({VertexUV, VertexUV3}              , vertex.uv       , uv)
                 file.write_data(vertex.addr, sizeof vertex)
+        elif VerticesSeparated in output_flags:
+            assert false

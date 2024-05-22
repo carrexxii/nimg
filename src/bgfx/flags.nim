@@ -180,3 +180,58 @@ const
                                 SamplerCompareMask
 template sampler_border_colour*(v: typed): SamplerFlag =
     (v.SamplerFlag shl SamplerBorderColourShift) and SamplerBorderColourMask
+
+type StencilFlag* = distinct uint32
+func `or`*(a, b: StencilFlag): StencilFlag {.borrow.}
+const
+    StencilFuncRefShift*   = StencilFlag 0x0000_0000
+    StencilFuncRefMask*    = StencilFlag 0x0000_00FF
+    StencilFuncRMaskShift* = StencilFlag 0x0000_0008
+    StencilFuncRMaskMask*  = StencilFlag 0x0000_FF00
+    StencilNone*           = StencilFlag 0x0000_0000
+    StencilMask*           = StencilFlag 0xFFFF_FFFF
+    StencilDefault*        = StencilFlag 0x0000_0000
+    StencilTestLess*       = StencilFlag 0x0001_0000
+    StencilTestLEqual*     = StencilFlag 0x0002_0000
+    StencilTestEqual*      = StencilFlag 0x0003_0000
+    StencilTestGEqual*     = StencilFlag 0x0004_0000
+    StencilTestGreater*    = StencilFlag 0x0005_0000
+    StencilTestNotEqual*   = StencilFlag 0x0006_0000
+    StencilTestNever*      = StencilFlag 0x0007_0000
+    StencilTestAlways*     = StencilFlag 0x0008_0000
+    StencilTestShift*      = StencilFlag 0x0000_0010
+    StencilTestMask*       = StencilFlag 0x000F_0000
+    StencilOpFailSZero*    = StencilFlag 0x0000_0000
+    StencilOpFailSKeep*    = StencilFlag 0x0010_0000
+    StencilOpFailSReplace* = StencilFlag 0x0020_0000
+    StencilOpFailSIncr*    = StencilFlag 0x0030_0000
+    StencilOpFailSIncrSAT* = StencilFlag 0x0040_0000
+    StencilOpFailSDecr*    = StencilFlag 0x0050_0000
+    StencilOpFailSDecrSAT* = StencilFlag 0x0060_0000
+    StencilOpFailSInvert*  = StencilFlag 0x0070_0000
+    StencilOpFailSShift*   = StencilFlag 0x0000_0014
+    StencilOpFailSMask*    = StencilFlag 0x00F0_0000
+    StencilOpFailZZero*    = StencilFlag 0x0000_0000
+    StencilOpFailZKeep*    = StencilFlag 0x0100_0000
+    StencilOpFailZReplace* = StencilFlag 0x0200_0000
+    StencilOpFailZIncr*    = StencilFlag 0x0300_0000
+    StencilOpFailZIncrSAT* = StencilFlag 0x0400_0000
+    StencilOpFailZDecr*    = StencilFlag 0x0500_0000
+    StencilOpFailZDecrSAT* = StencilFlag 0x0600_0000
+    StencilOpFailZInvert*  = StencilFlag 0x0700_0000
+    StencilOpFailZShift*   = StencilFlag 0x0000_0018
+    StencilOpFailZMask*    = StencilFlag 0x0f00_0000
+    StencilOpPassZZero*    = StencilFlag 0x0000_0000
+    StencilOpPassZKeep*    = StencilFlag 0x1000_0000
+    StencilOpPassZReplace* = StencilFlag 0x2000_0000
+    StencilOpPassZIncr*    = StencilFlag 0x3000_0000
+    StencilOpPassZIncrSAT* = StencilFlag 0x4000_0000
+    StencilOpPassZDecr*    = StencilFlag 0x5000_0000
+    StencilOpPassZDecrSAT* = StencilFlag 0x6000_0000
+    StencilOpPassZInvert*  = StencilFlag 0x7000_0000
+    StencilOpPassZShift*   = StencilFlag 0x0000_001C
+    StencilOpPassZMask*    = StencilFlag 0xF000_0000
+template stencil_func_ref*(x: typed) =
+    (x.uint32 shl StencilFuncRefShift) and StencilFuncRefMask
+template stencil_func_rmask*(x: typed) =
+    (x.uint32 shl StencilFuncRMaskShift) and StencilFuncRMaskMask

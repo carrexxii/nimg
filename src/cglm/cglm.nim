@@ -1,5 +1,7 @@
 from std/strutils  import to_lower
 from std/strformat import fmt
+import colour
+export colour
 
 const IncludeDir = "../lib/cglm/include/cglm"
 const CGLMHeader = IncludeDir & "/vec3.h"
@@ -17,6 +19,8 @@ type
     Vec2* = V2[float32]
     Vec3* = V3[float32]
     Vec4* = V4[float32]
+
+type Mat4x4* = array[4, array[4, float]]
 
 func `$`*[T](v: V2[T]): string = fmt"({v.x}, {v.y})"
 func `$`*[T](v: V3[T]): string = fmt"({v.x}, {v.y}, {v.z})"

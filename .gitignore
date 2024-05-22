@@ -5,6 +5,7 @@
 
 *.so*
 *.a
+build/
 include/
 tools/bgfx
 shaders/bin

@@ -9,8 +9,8 @@ type
         normals*            : ptr UncheckedArray[Vec3]
         tangents*           : ptr UncheckedArray[Vec3]
         bitangents*         : ptr UncheckedArray[Vec3]
-        colours*            : ptr UncheckedArray[array[MaxColourSets, Colour]]
-        texture_coords*     : ptr UncheckedArray[array[MaxTextureCoords, Vec3]]
+        colours*            : array[MaxColourSets, ptr UncheckedArray[Colour]]
+        texture_coords*     : array[MaxTextureCoords, ptr UncheckedArray[Vec3]]
         uv_component_count* : array[MaxTextureCoords, uint32]
         faces*              : ptr UncheckedArray[Face]
         bone_count*         : uint32
@@ -19,7 +19,7 @@ type
         name*               : String
         anim_mesh_count*    : uint32
         anim_meshes*        : ptr UncheckedArray[ptr AnimMesh]
-        morph_method*       : MorphingMethod
+        morph_method*       : MorphMethod
         aabb*               : AABB
         texture_coord_names*: ptr UncheckedArray[ptr String]
 
@@ -34,9 +34,9 @@ type
         vertex_count*  : uint32
         weight*        : float32
 
-    MorphingMethod* = enum
-        Unknown
-        VertexBlend
+    MorphMethod* = enum
+        MorphUnknown
+        MorphVertexBlend
         MorphNormalized
         MorphRelative
 

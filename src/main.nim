@@ -1,20 +1,18 @@
-import std/strformat
-import cglm/cglm
-import sdl/sdl
-import bgfx/bgfx
-import debug
+import
+    std/strformat,
+    nsdl, bgfx/bgfx, cglm/cglm, common
 
 const
     WinW = 1280
     WinH = 800
 
 echo green fmt"Nim version: {NimVersion}"
-echo green fmt"SDL version: {sdl.get_version()}"
+echo green fmt"SDL version: {nsdl.get_version()}"
 
-init(VideoFlag, EventsFlag)
-let window = sdl.create_window("SDL + BGFX", WinW, WinH, sdl.WindowResizable)
+nsdl.init Video or Events
+let window = create_window("SDL + BGFX", WinW, WinH, Resizeable)
 
-init(window, WinW, WinH)
+init(window, WinW, WinH) # TODO: bgfx.*
 set_debug DebugText
 set_view_clear(ViewID 0, ClearColour or ClearDepth, 0x003535FF, 1.0, 0)
 
@@ -39,7 +37,7 @@ var encoder: Encoder
 var frame_num: uint32
 var running = true
 while running:
-    for event in get_event():
+    for event in get_events():
         case event.kind
         of Quit: running = false
         of KeyUp: discard
@@ -47,24 +45,26 @@ while running:
             case event.key.keysym.sym
             of Key_Escape: running = false
             else: discard
+        else:
+            discard
 
     set_view_rect(ViewID 0, 0, 0, WinW, WinH)
 
-    encoder = begin_encoder false
+    encoder = start false
     touch(encoder, ViewID 0)
-    end_encoder encoder
+    stop encoder
 
     debug_text_clear(0, false)
     debug_text_printf(0, 1, 0x0f, "Hello, World!")
     debug_text_printf(0, 2, 0x0f, cstring fmt"Total memory usage: {get_total_mem()/1024/1024:.2}MB")
     debug_text_printf(0, 3, 0x0f, cstring fmt"Frame: {frame_num}")
 
-    set_vbo(VBOStream 0, vbo, 0, 3)
+    set_vbo(VertexStream 0, vbo, 0, 3)
     set_state StateDefault
     submit(ViewID 0, program)
 
     frame_num = submit_frame false
 
 bgfx.shutdown()
-close_window window
-sdl.quit()
+destroy window
+nsdl.quit()
