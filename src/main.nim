@@ -1,37 +1,23 @@
 import
-    std/strformat,
-    nsdl, bgfx/bgfx, cglm/cglm, common
+    nsdl, nbgfx, ngm,
+    common, model
 
 const
     WinW = 1280
     WinH = 800
 
-echo green fmt"Nim version: {NimVersion}"
-echo green fmt"SDL version: {nsdl.get_version()}"
+echo green &"Nim version: {NimVersion}"
+echo green &"SDL version: {nsdl.get_version()}"
 
 nsdl.init Video or Events
 let window = create_window("SDL + BGFX", WinW, WinH, Resizeable)
 
-init(window, WinW, WinH) # TODO: bgfx.*
-set_debug DebugText
-set_view_clear(ViewID 0, ClearColour or ClearDepth, 0x003535FF, 1.0, 0)
+init(cast[pointer](get_x11_window_number window), cast[pointer](get_x11_display_pointer window), WinW, WinH)
+set_debug Text
+set_view_clear(ViewID 0, ClearFlag.Colour or ClearFlag.Depth, 0x003535FF, 1.0, 0)
 
-type
-    Colour = distinct uint32
-    Vertex = object
-        pos   : Vec3
-        colour: Colour
-
-var verts = [
-    Vertex(pos: Vec3(x:  0.0, y:  1.0, z: 0.0), colour: Colour 0xFFFF0000),
-    Vertex(pos: Vec3(x: -1.0, y: -1.0, z: 0.0), colour: Colour 0xFF00FF00),
-    Vertex(pos: Vec3(x:  1.0, y: -1.0, z: 0.0), colour: Colour 0xFF0000FF),
-]
-var vert_mem = copy(verts[0].addr, 3*sizeof(Vertex))
-
-var program = create_program "model"
-var layout = create_vbo_layout [(Position, 3, Float), (Colour0, 4, UInt8)]
-var vbo = create_vbo(vert_mem, layout.addr, BufferNone)
+model.init()
+let mdl = model.load "gfx/models/fish.nai"
 
 var encoder: Encoder
 var frame_num: uint32
@@ -50,21 +36,19 @@ while running:
 
     set_view_rect(ViewID 0, 0, 0, WinW, WinH)
 
-    encoder = start false
-    touch(encoder, ViewID 0)
-    stop encoder
+    encoder.start
+    encoder.touch ViewID 0
+    encoder.stop
 
     debug_text_clear(0, false)
     debug_text_printf(0, 1, 0x0f, "Hello, World!")
-    debug_text_printf(0, 2, 0x0f, cstring fmt"Total memory usage: {get_total_mem()/1024/1024:.2}MB")
-    debug_text_printf(0, 3, 0x0f, cstring fmt"Frame: {frame_num}")
+    debug_text_printf(0, 2, 0x0f, cstring &"Total memory usage: {get_total_mem()/1024/1024:.2}MB")
+    debug_text_printf(0, 3, 0x0f, cstring &"Frame: {frame_num}")
 
-    set_vbo(VertexStream 0, vbo, 0, 3)
-    set_state StateDefault
-    submit(ViewID 0, program)
+    encoder.draw mdl
 
-    frame_num = submit_frame false
+    frame_num = frame false
 
-bgfx.shutdown()
+#bgfx.shutdown()
 destroy window
 nsdl.quit()
