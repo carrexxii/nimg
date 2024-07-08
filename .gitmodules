@@ -1,0 +1,12 @@
+[submodule "tools/nai"]
+	path = tools/nai
+	url = https://github.com/carrexxii/nai
+[submodule "lib/nsdl"]
+	path = lib/nsdl
+	url = https://github.com/carrexxii/nsdl
+[submodule "lib/ngfx"]
+	path = lib/ngfx
+	url = https://github.com/carrexxii/ngfx
+[submodule "lib/ngm"]
+	path = lib/ngm
+	url = https://github.com/carrexxii/ngm

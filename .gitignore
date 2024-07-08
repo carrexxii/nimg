@@ -1,15 +1,13 @@
 *
 !*.*
 !*/
-!Makefile
+
+build/
+gfx/
+bin/
 
 *.so*
 *.a
-build/
-include/
-tools/bgfx
-shaders/bin
-shaders/bgfx_shader.sh
-src/naiheader.nim
 
-gfx/
+bgfx_shader.sh
+

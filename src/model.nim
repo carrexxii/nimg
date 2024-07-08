@@ -1,6 +1,6 @@
 import
     std/streams,
-    nbgfx, ngm,
+    ngfx, ngm,
     common, naiheader
 
 type
@@ -20,18 +20,17 @@ type
 
 var
     program: Program
-    layout : VBOLayout
+    layout : VertexLayout
 
 proc init*() =
     program = create_program "model"
-    layout = create_vbo_layout((Position , 3, AttribKind.Float),
-                               (Normal   , 3, AttribKind.Float),
-                               (TexCoord0, 2, AttribKind.Float))
+    layout = create_vertex_layout((Attrib.Position , 3, AttribKind.Float),
+                                  (Attrib.Normal   , 3, AttribKind.Float),
+                                  (Attrib.TexCoord0, 2, AttribKind.Float))
 
 proc load*(path: string): Model =
     result = Model()
     template read_into(dst, size) =
-        # echo "reading: " & $size
         if stream.read_data(dst.addr, size) != size:
             let sz {.inject.} = size
             echo red &"Error: failed reading {sz}B/{sz/1024:.2f}kB from '{path}'"
@@ -64,8 +63,8 @@ proc load*(path: string): Model =
         result.meshes.add Mesh(vbo: vbo, vert_count : vert_count,
                                ibo: ibo, index_count: index_count)
 
-proc draw*(encoder: Encoder; mdl: Model) =
+proc draw*(e: Encoder; mdl: Model) =
     for mesh in mdl.meshes:
-        set_vbo(VertexStream 0, mesh.vbo, 0, mesh.vert_count)
-        set_ibo(mesh.ibo, 0, mesh.index_count)
-        encoder.submit(ViewID 0, program)
+        e.set_vbo(VertexStream 0, mesh.vbo, 0, mesh.vert_count)
+        e.set_ibo(mesh.ibo, 0, mesh.index_count)
+        e.submit(ViewID 0, program)
