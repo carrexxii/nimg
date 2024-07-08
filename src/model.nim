@@ -1,3 +1,7 @@
+# This file is a part of NimG. Copyright (C) 2024 carrexxii.
+# It is distributed under the terms of the GNU Affero General Public License version 3 only.
+# For a copy, see the LICENSE file or <https://www.gnu.org/licenses/>.
+
 import
     std/streams,
     ngfx, ngm,
