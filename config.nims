@@ -22,7 +22,8 @@ let
          dst  : tool_dir / "nai",
          tag  : "",
          cmds : @[&"nim restore --skipParentCfg",
-                  &"nim build --skipParentCfg"]),
+                  &"nim release --skipParentCfg",
+                  &"cp src/nai.nim {cwd / src_dir}"]),
         (src  : "https://github.com/carrexxii/nsdl",
          dst  : lib_dir / "nsdl",
          tag  : "",
@@ -43,7 +44,7 @@ let
     linker_flags = &"-L{lib_dir} -Wl,-rpath,'\\$ORIGIN/{lib_dir}' "
     flags = (include_dirs.map_it(&"-p:./{lib_dir / it}").join " ") &
             &" --nimCache:{build_dir} -o:{bin_path} --passL:\"{linker_flags}\" " &
-            &" -l:\"{linker_flags}\""
+            &" -l:\"{linker_flags}\" -d:NSDLPath={lib_dir}/nsdl"
     debug_flags   = &"--cc:tcc {flags} --passL:\"-ldl -lm\" --tlsEmulation:on -d:useMalloc"
     release_flags = &"--cc:gcc {flags} -d:release -d:danger --opt:speed"
     post_release = @[""]
@@ -89,19 +90,19 @@ task restore, "Fetch and build dependencies":
                 run cmd
 
 task build_models, "Build models":
-    let models = list_files (gfx_dir / "models")
+    let models = list_files(gfx_dir / "models").filter_it(it.ends_with ".glb")
     for model_path in models:
         let output_path = model_path.replace(".glb", ".nai")
-        # run &"{tool_dir}/nai/nai -c {tool_dir}/nai.ini -i:{model_dir} -o:{output_path}"
+        run &"{tool_dir}/nai/nai -f -c:{gfx_dir}/nai.ini -o:{output_path} {model_path}"
 
 task build_shaders, "Compile shaders":
     mk_dir (shader_dir / "bin")
     let shaders = list_files shader_dir
     for vs_path in shaders.filter_it (it.endswith ".vs.sc"):
-        let fname = vs_path.rsplit('/', maxsplit = 1)[1].replace("vs.sc", "bin")
+        let fname = vs_path.rsplit('/', maxsplit = 1)[1].replace(".sc", ".bin")
         run &"{tool_dir}/shaderc --type vertex {ShaderFlags} -f {vs_path} -o {shader_dir}/bin/{fname}"
     for fs_path in shaders.filter_it (it.endswith ".fs.sc"):
-        let fname = fs_path.rsplit('/', maxsplit = 1)[1].replace("fs.sc", "bin")
+        let fname = fs_path.rsplit('/', maxsplit = 1)[1].replace(".sc", ".bin")
         run &"{tool_dir}/shaderc --type fragment {ShaderFlags} -f {fs_path} -o {shader_dir}/bin/{fname}"
 
 task build, "Build the project (debug build)":

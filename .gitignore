@@ -1,13 +1,16 @@
 *
 !*.*
 !*/
+!LICENSE
 
 build/
 gfx/
 bin/
+temp/
 
 *.so*
 *.a
 
 bgfx_shader.sh
+nai.nim
 

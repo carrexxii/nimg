@@ -5,7 +5,10 @@
 import
     std/streams,
     ngfx, ngm,
-    common, naiheader
+    common, nai
+from std/strutils import join
+
+const ShaderDir = "shaders/bin"
 
 type
     Vertex {.packed.} = object
@@ -27,48 +30,52 @@ var
     layout : VertexLayout
 
 proc init*() =
-    program = create_program "model"
-    layout = create_vertex_layout((Attrib.Position , 3, AttribKind.Float),
-                                  (Attrib.Normal   , 3, AttribKind.Float),
-                                  (Attrib.TexCoord0, 2, AttribKind.Float))
+    program = create_program(ShaderDir / "model.vs.bin", ShaderDir / "model.fs.bin")
+    layout = create_vertex_layout((aPosition , 3, akFloat),
+                                  (aNormal   , 3, akFloat),
+                                  (aTexCoord0, 2, akFloat))
 
 proc load*(path: string): Model =
-    result = Model()
-    template read_into(dst, size) =
-        if stream.read_data(dst.addr, size) != size:
-            let sz {.inject.} = size
-            echo red &"Error: failed reading {sz}B/{sz/1024:.2f}kB from '{path}'"
+    let file = path.open_file_stream fmRead
 
-    let stream = open_file_stream(path, fmRead)
-    defer: stream.close()
+    var header: Header
+    file.read header
+    let header_errs = validate header
 
-    var
-        header     : Header
-        vert_buf   : seq[Vertex]
-        vert_count : uint32
-        index_buf  : seq[uint32]
-        index_count: uint32
-    read_into(header, sizeof Header)
-    for i in 0'u16..<header.mesh_count:
-        read_into(vert_count , sizeof vert_count)
-        read_into(index_count, sizeof index_count)
-        if vert_buf.capacity  < int vert_count : vert_buf.set_len  vert_count
-        if index_buf.capacity < int index_count: index_buf.set_len index_count
+    var read_size: int
+    var vert_buf : seq[Vertex]
+    var index_buf: seq[uint32] # TODO: size to match mesh_header.index_size
+    for _ in 0'u16..<header.mesh_count:
+        var mesh_header: MeshHeader
+        file.read mesh_header
 
-        let vert_mem_size  = (int vert_count)  * sizeof Vertex
-        let index_mem_size = (int index_count) * sizeof uint32
-        read_into(vert_buf[0] , vert_mem_size)
-        read_into(index_buf[0], index_mem_size)
+        vert_buf.set_len  mesh_header.vert_count
+        index_buf.set_len mesh_header.index_count
 
-        let vert_mem  = copy(vert_buf[0].addr , vert_mem_size)
-        let index_mem = copy(index_buf[0].addr, index_mem_size)
-        let vbo = create_vbo(vert_mem, layout)
-        let ibo = create_ibo index_mem
-        result.meshes.add Mesh(vbo: vbo, vert_count : vert_count,
-                               ibo: ibo, index_count: index_count)
+        let vert_size = (int mesh_header.vert_count) * sizeof Vertex
+        read_size = file.read_data(vert_buf[0].addr, vert_size)
+        if read_size != vert_size:
+            error &"Failed to read correct number of vertices, got {read_size}B, expected {vert_size}B"
 
-proc draw*(e: Encoder; mdl: Model) =
+        let index_size = (int mesh_header.index_count) * mesh_header.index_size
+        read_size = file.read_data(index_buf[0].addr, index_size)
+        if read_size != index_size:
+            error &"Failed to read correct number of indices, got {read_size}B, expected {index_size}B"
+
+        let
+            vert_mem  = copy(vert_buf[0].addr , vert_size)
+            index_mem = copy(index_buf[0].addr, index_size)
+            vbo       = create_vbo(vert_mem, layout)
+            ibo       = create_ibo index_mem
+        result.meshes.add Mesh(vbo: vbo, vert_count : mesh_header.vert_count,
+                               ibo: ibo, index_count: mesh_header.index_count)
+
+    close file
+
+proc draw*(encoder: Encoder; mdl: Model) =
     for mesh in mdl.meshes:
-        e.set_vbo(VertexStream 0, mesh.vbo, 0, mesh.vert_count)
-        e.set_ibo(mesh.ibo, 0, mesh.index_count)
-        e.submit(ViewID 0, program)
+        with encoder:
+            set_vbo VertexStream 0, mesh.vbo, 0, mesh.vert_count
+            set_ibo mesh.ibo, 0, mesh.index_count
+            submit ViewID 0, program
+

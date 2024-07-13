@@ -10,3 +10,4 @@ void main()
 
 	gl_Position = mul(mul(u_model[0], u_viewProj), vec4(a_position, 1.0));
 }
+

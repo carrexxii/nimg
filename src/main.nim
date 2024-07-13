@@ -13,12 +13,12 @@ const
 echo green &"Nim version: {NimVersion}"
 echo green &"SDL version: {sdl_version()}"
 
-nsdl.init Video or Events
-let window = create_window("SDL + BGFX", WinW, WinH, Resizeable)
+nsdl.init ifVideo or ifEvents
+let window = create_window("SDL + BGFX", WinW, WinH, wfResizeable)
 
-init(cast[pointer](get_x11_window_number window), cast[pointer](get_x11_display_pointer window), WinW, WinH)
-set_debug Text
-set_view_clear(ViewID 0, ClearFlag.Colour or ClearFlag.Depth, 0x003535FF, 1.0, 0)
+ngfx.init cast[pointer](get_x11_window_number window), cast[pointer](get_x11_display_pointer window), WinW, WinH
+set_debug dfNone
+set_view_clear ViewID 0, colour or depth, 0x003535FF, 1.0, 0
 
 model.init()
 let mdl = model.load "gfx/models/fish.nai"
@@ -34,39 +34,41 @@ var running = true
 while running:
     for event in get_events():
         case event.kind
-        of Quit: running = false
-        of KeyUp: discard
-        of KeyDown:
-            case event.key.keysym.sym
-            of KEscape: running = false
-            of KUp   : mmat[3][1] += 0.1
-            of KDown : mmat[3][1] -= 0.1
-            of KRight: mmat[3][0] += 0.1
-            of KLeft : mmat[3][0] -= 0.1
-            of Kw: camera.pan Up
-            of Ks: camera.pan Down
-            of Ka: camera.pan Left
-            of Kd: camera.pan Right
+        of eQuit: running = false
+        of eKeyUp: discard
+        of eKeyDown:
+            case event.kb.key
+            of kcEscape: running = false
+            of kcUp   : mmat[3][1] += 0.1
+            of kcDown : mmat[3][1] -= 0.1
+            of kcRight: mmat[3][0] += 0.1
+            of kcLeft : mmat[3][0] -= 0.1
+            of kcW: camera.pan Up
+            of kcS: camera.pan Down
+            of kcA: camera.pan Left
+            of kcD: camera.pan Right
             else: discard
         else:
             discard
 
     update camera
-    set_view_transform(ViewID 0, camera.view.addr, camera.proj.addr)
-    set_view_rect(ViewID 0, 0, 0, WinW, WinH)
+    set_view_transform ViewID 0, camera.view.addr, camera.proj.addr
+    set_view_rect ViewID 0, 0, 0, WinW, WinH
 
-    encoder.start
-    encoder.set_transform mmat.addr
-    encoder.draw mdl
-    encoder.stop
+    with encoder:
+        start
+        set_transform mmat.addr
+        draw mdl
+        stop
 
     debug.clear()
-    debug.print(0, 1, "Hello, World!")
-    debug.print(0, 2, &"Total memory usage: {get_total_mem()/1024/1024:.2}MB")
-    debug.print(0, 3, &"Frame: {frame_num}")
+    debug.print 0, 1, "Hello, World!"
+    debug.print 0, 2, &"Total memory usage: {get_total_mem()/1024/1024:.2}MB"
+    debug.print 0, 3, &"Frame: {frame_num}"
 
     frame_num = frame false
 
-#bgfx.shutdown()
+ngfx.shutdown()
 destroy window
 nsdl.quit()
+
