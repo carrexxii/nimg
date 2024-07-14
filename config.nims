@@ -43,7 +43,7 @@ let
     include_dirs = ["nsdl/", "ngfx/", "ngm/"]
     linker_flags = &"-L{lib_dir} -Wl,-rpath,'\\$ORIGIN/{lib_dir}' "
     flags = (include_dirs.map_it(&"-p:./{lib_dir / it}").join " ") &
-            &" --nimCache:{build_dir} -o:{bin_path} --passL:\"{linker_flags}\" " &
+            &" --mm:arc --debugInfo --nimCache:{build_dir} -o:{bin_path} --passL:\"{linker_flags}\" " &
             &" -l:\"{linker_flags}\" -d:NSDLPath={lib_dir}/nsdl"
     debug_flags   = &"--cc:tcc {flags} --passL:\"-ldl -lm\" --tlsEmulation:on -d:useMalloc"
     release_flags = &"--cc:gcc {flags} -d:release -d:danger --opt:speed"

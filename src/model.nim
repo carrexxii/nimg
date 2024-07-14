@@ -23,44 +23,51 @@ type
         ibo: IBO
 
     Model = object
-        meshes: seq[Mesh] = new_seq_of_cap[Mesh] 1
+        meshes  : seq[Mesh] = new_seq_of_cap[Mesh] 1
+        textures: seq[Texture]
 
 var
-    program: Program
-    layout : VertexLayout
+    program : Program
+    layout  : VertexLayout
+    uniforms: tuple[
+        diffuse: Uniform
+    ]
 
 proc init*() =
     program = create_program(ShaderDir / "model.vs.bin", ShaderDir / "model.fs.bin")
     layout = create_vertex_layout((aPosition , 3, akFloat),
                                   (aNormal   , 3, akFloat),
                                   (aTexCoord0, 2, akFloat))
+    uniforms.diffuse = create_uniform("diffuse_tex", ukSampler)
 
 proc load*(path: string): Model =
     let file = path.open_file_stream fmRead
+    proc read(dst: pointer; size: int; name: string) =
+        let read_size = file.read_data(dst, size)
+        if read_size != size:
+            error &"Failed to read correct number of bytes from '{path}' for '{name}'\n" &
+                  &"    got {bytes_to_string read_size}, expected {bytes_to_string size}"
 
     var header: Header
     file.read header
-    let header_errs = validate header
+    let header_errs = validate(header, [])
+    if header_errs != @[]:
+        error header_errs.join "\n"
 
     var read_size: int
     var vert_buf : seq[Vertex]
     var index_buf: seq[uint32] # TODO: size to match mesh_header.index_size
-    for _ in 0'u16..<header.mesh_count:
+    for i in 0'u16..<header.mesh_count:
         var mesh_header: MeshHeader
         file.read mesh_header
 
         vert_buf.set_len  mesh_header.vert_count
         index_buf.set_len mesh_header.index_count
 
-        let vert_size = (int mesh_header.vert_count) * sizeof Vertex
-        read_size = file.read_data(vert_buf[0].addr, vert_size)
-        if read_size != vert_size:
-            error &"Failed to read correct number of vertices, got {read_size}B, expected {vert_size}B"
-
+        let vert_size  = (int mesh_header.vert_count) * sizeof Vertex
         let index_size = (int mesh_header.index_count) * mesh_header.index_size
-        read_size = file.read_data(index_buf[0].addr, index_size)
-        if read_size != index_size:
-            error &"Failed to read correct number of indices, got {read_size}B, expected {index_size}B"
+        read vert_buf[0].addr , vert_size , &"Mesh {i} vertices"
+        read index_buf[0].addr, index_size, &"Mesh {i} indices"
 
         let
             vert_mem  = copy(vert_buf[0].addr , vert_size)
@@ -70,6 +77,18 @@ proc load*(path: string): Model =
         result.meshes.add Mesh(vbo: vbo, vert_count : mesh_header.vert_count,
                                ibo: ibo, index_count: mesh_header.index_count)
 
+    for i in 0'u16..<header.material_count:
+        var mtl_header: MaterialHeader
+        file.read mtl_header
+        echo mtl_header
+        for j in 0'u16..<mtl_header.texture_count:
+            var tex_header: TextureHeader
+            file.read tex_header
+
+            var tex_data = alloc tex_header.size
+            read tex_data, tex_header.size, &"Texture data (texture {j}; material {i})"
+            result.textures.add create_texture(tex_data, tex_header.format, tex_header.w, tex_header.h)
+
     close file
 
 proc draw*(encoder: Encoder; mdl: Model) =
@@ -77,5 +96,6 @@ proc draw*(encoder: Encoder; mdl: Model) =
         with encoder:
             set_vbo VertexStream 0, mesh.vbo, 0, mesh.vert_count
             set_ibo mesh.ibo, 0, mesh.index_count
+            set_texture uniforms.diffuse, mdl.textures[0]
             submit ViewID 0, program
 
