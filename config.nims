@@ -151,5 +151,5 @@ task info, "Print out information about the project":
         echo &"    [{i + 1}] {dep.dst:<24}{cyan dep.src}{yellow tag}"
 
     echo ""
-    run "cloc --vcs=git"
+    run "cloc --include-lang=nim ."
 

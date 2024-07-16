@@ -4,7 +4,7 @@
 
 import
     ngm, nsdl, ngfx, ngfx/debug,
-    common, model
+    common, models
 
 const
     WinW = 1280
@@ -20,13 +20,19 @@ ngfx.init cast[pointer](get_x11_window_number window), cast[pointer](get_x11_dis
 set_debug dfNone
 set_view_clear ViewID 0, colour or depth, 0x003535FF, 1.0, 0
 
-model.init()
-let mdl = model.load "gfx/models/fish.nai"
+init_models()
+let mdl = load_model "gfx/models/fish.nai"
 
-let dir = vec(0, 0, 0) - vec(5, 10, 5)
-var camera = camera(69, 16/9, 0.1, 100.0, pos = vec(5, 10, 5), dir = dir, up = vec(1, 1, 1))
+var camera = Camera(
+    pos   : vec(5, 10, 5),
+    target: vec(0, 0, 0),
+    up    : vec(1, 1, 1),
+)
+camera.set_perspective 69, 16/9, 0.1, 100.0
 
-var mmat = Mat4Ident
+var mmat = Mat4x4Ident
+
+var cam_dir: CameraDirection
 
 var encoder: Encoder
 var frame_num: uint32
@@ -35,22 +41,31 @@ while running:
     for event in get_events():
         case event.kind
         of eQuit: running = false
-        of eKeyUp: discard
         of eKeyDown:
             case event.kb.key
             of kcEscape: running = false
-            of kcUp   : mmat[3][1] += 0.1
-            of kcDown : mmat[3][1] -= 0.1
-            of kcRight: mmat[3][0] += 0.1
-            of kcLeft : mmat[3][0] -= 0.1
-            of kcW: camera.pan Up
-            of kcS: camera.pan Down
-            of kcA: camera.pan Left
-            of kcD: camera.pan Right
+            of kcW    : cam_dir = cdForwards
+            of kcS    : cam_dir = cdBackwards
+            of kcA    : cam_dir = cdLeft
+            of kcD    : cam_dir = cdRight
+            of kcSpace: cam_dir = cdUp
+            of kcLCtrl: cam_dir = cdDown
             else: discard
+        of eKeyUp:
+            case event.kb.key
+            of kcW    : cam_dir = (if cam_dir == cdForwards : cdNone else: cam_dir)
+            of kcS    : cam_dir = (if cam_dir == cdBackwards: cdNone else: cam_dir)
+            of kcA    : cam_dir = (if cam_dir == cdLeft     : cdNone else: cam_dir)
+            of kcD    : cam_dir = (if cam_dir == cdRight    : cdNone else: cam_dir)
+            of kcSpace: cam_dir = (if cam_dir == cdUp       : cdNone else: cam_dir)
+            of kcLCtrl: cam_dir = (if cam_dir == cdDown     : cdNone else: cam_dir)
+            else: discard
+        of eMouseMotion:
+            camera.move vec(event.motion.x_rel, event.motion.y_rel)
         else:
             discard
 
+    camera.move cam_dir
     update camera
     set_view_transform ViewID 0, camera.view.addr, camera.proj.addr
     set_view_rect ViewID 0, 0, 0, WinW, WinH
@@ -68,6 +83,7 @@ while running:
 
     frame_num = frame false
 
+deinit_models()
 ngfx.shutdown()
 destroy window
 nsdl.quit()
