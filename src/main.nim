@@ -4,7 +4,7 @@
 
 import
     ngm, nsdl, ngfx, ngfx/debug,
-    common, models
+    common, config, models
 
 const
     WinW = 1280
@@ -34,9 +34,13 @@ var mmat = Mat4x4Ident
 
 var cam_dir: CameraDirection
 
-var encoder: Encoder
-var frame_num: uint32
-var running = true
+var
+    encoder: Encoder
+    frame_num: uint32
+    running = true
+
+    dt, nt, ot, acc = 0'ns
+ot =  get_ticks()
 while running:
     for event in get_events():
         case event.kind
@@ -65,8 +69,16 @@ while running:
         else:
             discard
 
-    camera.move cam_dir
-    update camera
+    nt = get_ticks()
+    dt = nt - ot
+    ot = nt
+    acc += dt
+    while acc >= target_dt:
+        acc -= target_dt
+
+        camera.move cam_dir
+        update camera
+
     set_view_transform ViewID 0, camera.view.addr, camera.proj.addr
     set_view_rect ViewID 0, 0, 0, WinW, WinH
 
